@@ -1,14 +1,41 @@
 'use client'
-import { supabase } from '../../lib/supabase'
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
 
 export default function MovieCard({ movie, onUpdate }) {
   const [hover, setHover] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [supabase, setSupabase] = useState(null)
+
+  // Initialiseer Supabase in de browser
+  useEffect(() => {
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey)
+      setSupabase(client)
+    }
+
+    initSupabase()
+  }, [])
 
   async function toggleWatched() {
+    if (!supabase) return
+
     setLoading(true)
     const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      setLoading(false)
+      return
+    }
+
     const userId = session.user.id
 
     if (movie.watched) {
@@ -25,6 +52,24 @@ export default function MovieCard({ movie, onUpdate }) {
 
     onUpdate()
     setLoading(false)
+  }
+
+  if (!supabase) {
+    return (
+      <div style={{
+        position: 'relative',
+        borderRadius: '10px',
+        overflow: 'hidden',
+        aspectRatio: '2/3',
+        background: '#1a1a1a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'rgba(255,255,255,0.3)'
+      }}>
+        Laden...
+      </div>
+    )
   }
 
   return (
@@ -46,7 +91,6 @@ export default function MovieCard({ movie, onUpdate }) {
         zIndex: hover ? 10 : 1,
         aspectRatio: '2/3',
         background: '#1a1a1a',
-        // Watched: faded and desaturated
         opacity: movie.watched && !hover ? 0.35 : 1,
         filter: movie.watched && !hover ? 'grayscale(80%) brightness(0.7)' : 'none',
       }}

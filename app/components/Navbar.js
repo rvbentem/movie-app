@@ -1,7 +1,7 @@
 'use client'
+
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
 import { useEffect, useState } from 'react'
 
 export default function Navbar() {
@@ -9,14 +9,44 @@ export default function Navbar() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [supabase, setSupabase] = useState(null)
 
+  // Initialiseer Supabase in de browser
   useEffect(() => {
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
+      setSupabase(client)
+    }
+
+    initSupabase()
+  }, [])
+
+  // Haal de sessie op als Supabase beschikbaar is
+  useEffect(() => {
+    if (!supabase) return
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setEmail(session.user.email)
     })
-  }, [])
+  }, [supabase])
 
   async function signOut() {
+    if (!supabase) return
+
     await supabase.auth.signOut()
     router.push('/login')
   }
@@ -27,6 +57,37 @@ export default function Navbar() {
     { href: '/pick', label: 'Pick for Me' },
     { href: '/stats', label: 'Stats' },
   ]
+
+  if (!supabase) {
+    return (
+      <nav style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        zIndex: 100,
+        padding: '0 24px',
+        height: '64px',
+        display: 'flex',
+        alignItems: 'center',
+        background: 'rgba(15,15,15,0.92)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)'
+      }}>
+        <span style={{
+          fontFamily: "'DM Serif Display', serif",
+          fontSize: '20px',
+          color: '#fff',
+          letterSpacing: '0.5px',
+          marginRight: '24px',
+          flexShrink: 0
+        }}>
+          Watchlist
+        </span>
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>
+          Laden...
+        </span>
+      </nav>
+    )
+  }
 
   return (
     <>
