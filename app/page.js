@@ -1,6 +1,6 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import Navbar from './components/Navbar'
 import MovieCard from './components/MovieCard'
 import AuthGuard from './components/AuthGuard'
@@ -14,8 +14,35 @@ export default function HomePage() {
   const [genreFilter, setGenreFilter] = useState('All')
   const [showWatched, setShowWatched] = useState(true)
   const [sortBy, setSortBy] = useState('rank')
+  const [supabase, setSupabase] = useState(null)
+
+  // Initialiseer de Supabase-client in de browser
+  useEffect(() => {
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
+      setSupabase(client)
+    }
+
+    initSupabase()
+  }, [])
 
   async function loadMovies() {
+    if (!supabase) return
+
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
@@ -36,7 +63,12 @@ export default function HomePage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadMovies() }, [])
+  // Laad films als de Supabase-client beschikbaar is
+  useEffect(() => {
+    if (supabase) {
+      loadMovies()
+    }
+  }, [supabase])
 
   const genres = ['All', ...new Set(movies.map(m => m.genre).filter(Boolean).sort())]
 
@@ -71,6 +103,15 @@ export default function HomePage() {
     fontFamily: "'DM Sans', sans-serif",
     outline: 'none',
     cursor: 'pointer'
+  }
+
+  // Toon een laadscherm als supabase nog niet beschikbaar is
+  if (!supabase) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'rgba(255,255,255,0.3)' }}>Initialiseren...</p>
+      </div>
+    )
   }
 
   return (
