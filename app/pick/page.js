@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Navbar from '../components/Navbar'
+import AuthGuard from '../components/AuthGuard'
 
 export default function PickPage() {
   const [allMovies, setAllMovies] = useState([])
@@ -10,11 +11,22 @@ export default function PickPage() {
 
   useEffect(() => {
     async function loadMovies() {
-      const { data } = await supabase
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { data: allMovies } = await supabase
         .from('movies')
         .select('*')
-        .eq('watched', false)
-      setAllMovies(data || [])
+        .order('imdb_rank', { ascending: true })
+
+      const { data: watchedMovies } = await supabase
+        .from('watched_movies')
+        .select('movie_id')
+        .eq('user_id', session.user.id)
+
+      const watchedIds = new Set(watchedMovies?.map(w => w.movie_id) || [])
+      const unwatched = allMovies.filter(m => !watchedIds.has(m.id))
+      setAllMovies(unwatched)
     }
     loadMovies()
   }, [])
@@ -43,91 +55,91 @@ export default function PickPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f0f' }}>
-      <Navbar />
-      <div style={{ padding: '88px 48px 64px', maxWidth: '960px' }}>
+    <AuthGuard>
+      <div style={{ minHeight: '100vh', background: '#0f0f0f' }}>
+        <Navbar />
+        <div style={{ padding: '88px 48px 64px', maxWidth: '960px' }}>
 
-        <div style={{ marginBottom: '40px' }}>
-          <h1 style={{
-            fontFamily: "'DM Serif Display', serif",
-            fontSize: '32px', fontWeight: '400', marginBottom: '6px'
-          }}>
-            Pick for Me
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px' }}>
-            Can't decide? Get 3 random picks from different genres.
-          </p>
-        </div>
+          <div style={{ marginBottom: '40px' }}>
+            <h1 style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: '32px', fontWeight: '400', marginBottom: '6px'
+            }}>
+              Pick for Me
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px' }}>
+              Can't decide? Get 3 random picks from different genres.
+            </p>
+          </div>
 
-        <button
-          onClick={pickMovies}
-          disabled={loading}
-          style={{
-            background: '#fff',
-            color: '#000',
-            border: 'none',
-            padding: '12px 28px',
-            fontSize: '14px',
-            fontWeight: '600',
-            borderRadius: '8px',
-            cursor: loading ? 'wait' : 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
-            letterSpacing: '0.2px',
-            marginBottom: '48px',
-            transition: 'opacity 0.15s'
-          }}
-        >
-          {loading ? 'Picking...' : '🎲 Pick 3 Movies'}
-        </button>
+          <button
+            onClick={pickMovies}
+            disabled={loading}
+            style={{
+              background: '#fff',
+              color: '#000',
+              border: 'none',
+              padding: '12px 28px',
+              fontSize: '14px',
+              fontWeight: '600',
+              borderRadius: '8px',
+              cursor: loading ? 'wait' : 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              marginBottom: '48px'
+            }}
+          >
+            {loading ? 'Picking...' : '🎲 Pick 3 Movies'}
+          </button>
 
-        {picks.length > 0 && (
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            {picks.map((movie, i) => (
-              <div key={movie.id} style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                flex: '1 1 260px',
-                maxWidth: '280px'
-              }}>
-                {movie.poster_url && (
-                  <img
-                    src={movie.poster_url}
-                    alt={movie.title}
-                    style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }}
-                  />
-                )}
-                <div style={{ padding: '20px' }}>
-                  <div style={{
-                    fontSize: '11px', fontWeight: '600',
-                    color: 'rgba(255,255,255,0.3)',
-                    letterSpacing: '1.5px', marginBottom: '8px'
-                  }}>
-                    OPTION {i + 1}
-                  </div>
-                  <div style={{
-                    fontFamily: "'DM Serif Display', serif",
-                    fontSize: '17px', marginBottom: '12px', lineHeight: 1.35
-                  }}>
-                    {movie.title}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.45)',
-                    display: 'flex', flexDirection: 'column', gap: '4px'
-                  }}>
-                    <span>📅 {movie.year}</span>
-                    <span>⏱ {movie.runtime ? `${movie.runtime} min` : '—'}</span>
-                    <span>🎬 {movie.genre || '—'}</span>
-                    <span>⭐ IMDb #{movie.imdb_rank}</span>
+          {picks.length > 0 && (
+            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+              {picks.map((movie, i) => (
+                <div key={movie.id} style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  flex: '1 1 260px',
+                  maxWidth: '280px'
+                }}>
+                  {movie.poster_url && (
+                    <img
+                      src={movie.poster_url}
+                      alt={movie.title}
+                      style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }}
+                    />
+                  )}
+                  <div style={{ padding: '20px' }}>
+                    <div style={{
+                      fontSize: '11px', fontWeight: '600',
+                      color: 'rgba(255,255,255,0.3)',
+                      letterSpacing: '1.5px', marginBottom: '8px'
+                    }}>
+                      OPTION {i + 1}
+                    </div>
+                    <div style={{
+                      fontFamily: "'DM Serif Display', serif",
+                      fontSize: '17px', marginBottom: '12px', lineHeight: 1.35
+                    }}>
+                      {movie.title}
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: 'rgba(255,255,255,0.45)',
+                      display: 'flex', flexDirection: 'column', gap: '4px'
+                    }}>
+                      <span>📅 {movie.year}</span>
+                      <span>⏱ {movie.runtime ? `${movie.runtime} min` : '—'}</span>
+                      <span>🎬 {movie.genre || '—'}</span>
+                      <span>⭐ IMDb #{movie.imdb_rank}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }

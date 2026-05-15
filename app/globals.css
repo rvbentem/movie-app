@@ -36,3 +36,28 @@ body {
 .fade-up {
   animation: fadeUp 0.4s ease forwards;
 }
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 80px 16px 48px !important;
+  }
+
+  .filters-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .filters-row input,
+  .filters-row select,
+  .filters-row button {
+    width: 100% !important;
+  }
+
+  .pick-cards {
+    flex-direction: column !important;
+  }
+
+  .pick-card {
+    max-width: 100% !important;
+  }
+}
