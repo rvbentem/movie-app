@@ -5,7 +5,6 @@ export default function HeroBanner({ movies }) {
   const [hero, setHero] = useState(null)
 
   useEffect(() => {
-    // Pick a random unwatched movie from the top 10
     const topUnwatched = movies.filter(m => !m.watched && m.imdb_rank <= 10)
     if (topUnwatched.length > 0) {
       const random = topUnwatched[Math.floor(Math.random() * topUnwatched.length)]
@@ -14,6 +13,14 @@ export default function HeroBanner({ movies }) {
   }, [movies])
 
   if (!hero || !hero.poster_url) return null
+
+  const badgeStyle = {
+    fontSize: '13px',
+    color: 'rgba(255,255,255,0.7)',
+    background: 'rgba(255,255,255,0.1)',
+    padding: '4px 12px',
+    borderRadius: '20px'
+  }
 
   return (
     <div style={{
@@ -24,7 +31,6 @@ export default function HeroBanner({ movies }) {
       borderRadius: '16px',
       overflow: 'hidden'
     }}>
-      {/* Background poster blurred */}
       <img
         src={hero.poster_url}
         alt={hero.title}
@@ -37,19 +43,16 @@ export default function HeroBanner({ movies }) {
         }}
       />
 
-      {/* Gradient overlay */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(to right, rgba(0,0,0,0.9) 40%, transparent 100%)'
       }} />
 
-      {/* Content */}
       <div style={{
         position: 'relative', zIndex: 2,
         display: 'flex', alignItems: 'center',
         height: '100%', padding: '40px'
       }}>
-        {/* Small poster */}
         <img
           src={hero.poster_url}
           alt={hero.title}
@@ -62,7 +65,6 @@ export default function HeroBanner({ movies }) {
           }}
         />
 
-        {/* Info */}
         <div>
           <div style={{
             fontSize: '11px', fontWeight: '700',
@@ -71,6 +73,7 @@ export default function HeroBanner({ movies }) {
           }}>
             IMDb #{hero.imdb_rank} — SUGGESTED FOR YOU
           </div>
+
           <h2 style={{
             fontFamily: "'DM Serif Display', serif",
             fontSize: '36px', fontWeight: '400',
@@ -79,24 +82,15 @@ export default function HeroBanner({ movies }) {
           }}>
             {hero.title}
           </h2>
-          <div style={{
-            display: 'flex', gap: '8px', flexWrap: 'wrap',
-            marginBottom: '24px'
-          }}>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
             {[hero.year, hero.runtime ? `${hero.runtime} min` : null, hero.genre]
               .filter(Boolean)
               .map((item, i) => (
-                <span key={i} style={{
-                  fontSize: '13px',
-                  color: 'rgba(255,255,255,0.7)',
-                  background: 'rgba(255,255,255,0.1)',
-                  padding: '4px 12px',
-                  borderRadius: '20px'
-                }}>
-                  {item}
-                </span>
+                <span key={i} style={badgeStyle}>{item}</span>
               ))}
           </div>
+
           
             href={`https://www.imdb.com/title/${hero.imdb_id}`}
             target="_blank"
