@@ -2,10 +2,30 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function InvitePage() {
+const boxStyle = {
+  minHeight: '100vh', background: '#0f0f0f',
+  display: 'flex', alignItems: 'center', justifyContent: 'center'
+}
+
+const cardStyle = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '12px', padding: '48px',
+  width: '100%', maxWidth: '400px'
+}
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#fff', padding: '12px 16px',
+  borderRadius: '8px', fontSize: '14px',
+  fontFamily: "'DM Sans', sans-serif", outline: 'none'
+}
+
+function InviteContent() {
   const [mode, setMode] = useState('loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -64,26 +84,6 @@ export default function InvitePage() {
 
     router.push('/')
     setLoading(false)
-  }
-
-  const boxStyle = {
-    minHeight: '100vh', background: '#0f0f0f',
-    display: 'flex', alignItems: 'center', justifyContent: 'center'
-  }
-
-  const cardStyle = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '12px', padding: '48px',
-    width: '100%', maxWidth: '400px'
-  }
-
-  const inputStyle = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#fff', padding: '12px 16px',
-    borderRadius: '8px', fontSize: '14px',
-    fontFamily: "'DM Sans', sans-serif", outline: 'none'
   }
 
   if (mode === 'loading') return (
@@ -165,5 +165,17 @@ export default function InvitePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function InvitePage() {
+  return (
+    <Suspense fallback={
+      <div style={boxStyle}>
+        <p style={{ color: 'rgba(255,255,255,0.3)' }}>Loading...</p>
+      </div>
+    }>
+      <InviteContent />
+    </Suspense>
   )
 }
