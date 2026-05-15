@@ -33,21 +33,56 @@ export default function PickPage() {
 
   function pickMovies() {
     setLoading(true)
-    const shuffled = [...allMovies].sort(() => Math.random() - 0.5)
+
+    const total = allMovies.length
+    const topCutoff = Math.ceil(total * 0.25)
+
+    // Split into top 25% and the rest
+    const topMovies = allMovies.slice(0, topCutoff)
+    const restMovies = allMovies.slice(topCutoff)
+
+    // Shuffle both pools
+    const shuffledTop = [...topMovies].sort(() => Math.random() - 0.5)
+    const shuffledRest = [...restMovies].sort(() => Math.random() - 0.5)
+
     const picked = []
     const usedGenres = new Set()
 
-    for (const movie of shuffled) {
-      if (picked.length >= 3) break
+    // Pick 2 from top 25% with different genres
+    for (const movie of shuffledTop) {
+      if (picked.length >= 2) break
       if (!usedGenres.has(movie.genre)) {
-        picked.push(movie)
+        picked.push({ ...movie, highlight: true })
         usedGenres.add(movie.genre)
       }
     }
 
-    for (const movie of shuffled) {
+    // If top 25% didn't have 2 different genres, fill from top anyway
+    for (const movie of shuffledTop) {
+      if (picked.length >= 2) break
+      if (!picked.find(p => p.id === movie.id)) {
+        picked.push({ ...movie, highlight: true })
+      }
+    }
+
+    // Pick 1 random from the rest, different genre if possible
+    for (const movie of shuffledRest) {
       if (picked.length >= 3) break
-      if (!picked.includes(movie)) picked.push(movie)
+      if (!usedGenres.has(movie.genre)) {
+        picked.push({ ...movie, highlight: false })
+        break
+      }
+    }
+
+    // Fallback: just pick any unwatched movie
+    if (picked.length < 3) {
+      const all = [...shuffledTop, ...shuffledRest]
+      for (const movie of all) {
+        if (picked.length >= 3) break
+        if (!picked.find(p => p.id === movie.id)) {
+          picked.push({ ...movie, highlight: false })
+        }
+      }
     }
 
     setPicks(picked)
@@ -58,7 +93,7 @@ export default function PickPage() {
     <AuthGuard>
       <div style={{ minHeight: '100vh', background: '#0f0f0f' }}>
         <Navbar />
-        <div style={{ padding: '88px 48px 64px', maxWidth: '960px' }}>
+        <div className="page-container" style={{ padding: '88px 48px 64px', maxWidth: '960px' }}>
 
           <div style={{ marginBottom: '40px' }}>
             <h1 style={{
@@ -68,13 +103,13 @@ export default function PickPage() {
               Pick for Me
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px' }}>
-              Can't decide? Get 3 random picks from different genres.
+              2 picks from your top ranked unwatched movies, 1 wildcard.
             </p>
           </div>
 
           <button
             onClick={pickMovies}
-            disabled={loading}
+            disabled={loading || allMovies.length === 0}
             style={{
               background: '#fff',
               color: '#000',
@@ -92,23 +127,66 @@ export default function PickPage() {
           </button>
 
           {picks.length > 0 && (
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            <div className="pick-cards" style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
               {picks.map((movie, i) => (
-                <div key={movie.id} style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  flex: '1 1 260px',
-                  maxWidth: '280px'
-                }}>
+                <div
+                  key={movie.id}
+                  className="pick-card"
+                  style={{
+                    background: movie.highlight
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(255,255,255,0.03)',
+                    border: movie.highlight
+                      ? '1px solid rgba(255,255,255,0.15)'
+                      : '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    flex: '1 1 260px',
+                    maxWidth: '280px',
+                    position: 'relative'
+                  }}
+                >
+                  {/* Top ranked badge */}
+                  {movie.highlight && (
+                    <div style={{
+                      position: 'absolute', top: '12px', right: '12px',
+                      zIndex: 2,
+                      background: '#f5c518',
+                      color: '#000',
+                      fontSize: '10px', fontWeight: '800',
+                      padding: '3px 8px', borderRadius: '20px',
+                      letterSpacing: '0.5px'
+                    }}>
+                      TOP PICK
+                    </div>
+                  )}
+
+                  {/* Wildcard badge */}
+                  {!movie.highlight && (
+                    <div style={{
+                      position: 'absolute', top: '12px', right: '12px',
+                      zIndex: 2,
+                      background: 'rgba(255,255,255,0.15)',
+                      color: '#fff',
+                      fontSize: '10px', fontWeight: '700',
+                      padding: '3px 8px', borderRadius: '20px',
+                      letterSpacing: '0.5px'
+                    }}>
+                      WILDCARD
+                    </div>
+                  )}
+
                   {movie.poster_url && (
                     <img
                       src={movie.poster_url}
                       alt={movie.title}
-                      style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }}
+                      style={{
+                        width: '100%', aspectRatio: '2/3',
+                        objectFit: 'cover', display: 'block'
+                      }}
                     />
                   )}
+
                   <div style={{ padding: '20px' }}>
                     <div style={{
                       fontSize: '11px', fontWeight: '600',

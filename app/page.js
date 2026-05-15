@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import Navbar from './components/Navbar'
 import MovieCard from './components/MovieCard'
 import AuthGuard from './components/AuthGuard'
+import ProgressBar from './components/ProgressBar'
+import HeroBanner from './components/HeroBanner'
 
 export default function HomePage() {
   const [movies, setMovies] = useState([])
@@ -11,6 +13,7 @@ export default function HomePage() {
   const [search, setSearch] = useState('')
   const [genreFilter, setGenreFilter] = useState('All')
   const [showWatched, setShowWatched] = useState(true)
+  const [sortBy, setSortBy] = useState('rank')
 
   async function loadMovies() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -37,14 +40,38 @@ export default function HomePage() {
 
   const genres = ['All', ...new Set(movies.map(m => m.genre).filter(Boolean).sort())]
 
-  const filtered = movies.filter(m => {
+  function sortMovies(list) {
+    switch (sortBy) {
+      case 'rank': return [...list].sort((a, b) => a.imdb_rank - b.imdb_rank)
+      case 'year_new': return [...list].sort((a, b) => b.year - a.year)
+      case 'year_old': return [...list].sort((a, b) => a.year - b.year)
+      case 'runtime_short': return [...list].sort((a, b) => (a.runtime || 999) - (b.runtime || 999))
+      case 'runtime_long': return [...list].sort((a, b) => (b.runtime || 0) - (a.runtime || 0))
+      case 'genre': return [...list].sort((a, b) => (a.genre || '').localeCompare(b.genre || ''))
+      default: return list
+    }
+  }
+
+  const filtered = sortMovies(movies.filter(m => {
     const matchSearch = m.title.toLowerCase().includes(search.toLowerCase())
     const matchGenre = genreFilter === 'All' || m.genre === genreFilter
     const matchWatched = showWatched ? true : !m.watched
     return matchSearch && matchGenre && matchWatched
-  })
+  }))
 
   const watchedCount = movies.filter(m => m.watched).length
+
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#fff',
+    padding: '9px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontFamily: "'DM Sans', sans-serif",
+    outline: 'none',
+    cursor: 'pointer'
+  }
 
   return (
     <AuthGuard>
@@ -52,7 +79,11 @@ export default function HomePage() {
         <Navbar />
         <div className="page-container" style={{ padding: '88px 48px 64px' }}>
 
-          <div style={{ marginBottom: '32px' }}>
+          {/* Hero Banner */}
+          {!loading && <HeroBanner movies={movies} />}
+
+          {/* Header */}
+          <div style={{ marginBottom: '16px' }}>
             <h1 style={{
               fontFamily: "'DM Serif Display', serif",
               fontSize: '32px', fontWeight: '400', marginBottom: '4px'
@@ -64,6 +95,10 @@ export default function HomePage() {
             </p>
           </div>
 
+          {/* Progress bar */}
+          <ProgressBar watched={watchedCount} total={movies.length} />
+
+          {/* Filters */}
           <div className="filters-row" style={{
             display: 'flex', gap: '12px',
             marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center'
@@ -73,50 +108,30 @@ export default function HomePage() {
               placeholder="Search movies..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff',
-                padding: '9px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                width: '220px',
-                fontFamily: "'DM Sans', sans-serif",
-                outline: 'none'
-              }}
+              style={{ ...inputStyle, width: '200px', cursor: 'text' }}
             />
 
-            <select
-              value={genreFilter}
-              onChange={e => setGenreFilter(e.target.value)}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff',
-                padding: '9px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontFamily: "'DM Sans', sans-serif",
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
+            <select value={genreFilter} onChange={e => setGenreFilter(e.target.value)} style={inputStyle}>
               {genres.map(g => (
                 <option key={g} value={g} style={{ background: '#1a1a1a' }}>{g}</option>
               ))}
             </select>
 
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={inputStyle}>
+              <option value="rank" style={{ background: '#1a1a1a' }}>Sort: IMDb Rank</option>
+              <option value="year_new" style={{ background: '#1a1a1a' }}>Sort: Newest first</option>
+              <option value="year_old" style={{ background: '#1a1a1a' }}>Sort: Oldest first</option>
+              <option value="runtime_short" style={{ background: '#1a1a1a' }}>Sort: Shortest first</option>
+              <option value="runtime_long" style={{ background: '#1a1a1a' }}>Sort: Longest first</option>
+              <option value="genre" style={{ background: '#1a1a1a' }}>Sort: Genre</option>
+            </select>
+
             <button
               onClick={() => setShowWatched(!showWatched)}
               style={{
+                ...inputStyle,
                 background: showWatched ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.1)',
                 color: showWatched ? '#fff' : 'rgba(255,255,255,0.4)',
-                padding: '9px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontFamily: "'DM Sans', sans-serif",
-                cursor: 'pointer',
                 transition: 'all 0.15s'
               }}
             >
@@ -133,12 +148,4 @@ export default function HomePage() {
               gap: '12px'
             }}>
               {filtered.map(movie => (
-                <MovieCard key={movie.id} movie={movie} onUpdate={loadMovies} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </AuthGuard>
-  )
-}
+                <MovieCard key={movie.id} movie=

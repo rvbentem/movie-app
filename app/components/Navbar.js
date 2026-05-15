@@ -25,6 +25,7 @@ export default function Navbar() {
     { href: '/', label: 'To Watch' },
     { href: '/watched', label: 'Watched' },
     { href: '/pick', label: 'Pick for Me' },
+    { href: '/stats', label: 'Stats' },
   ]
 
   return (
