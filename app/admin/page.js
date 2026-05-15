@@ -3,8 +3,7 @@
 // Zorg ervoor dat de pagina dynamisch wordt gerenderd
 export const dynamic = 'force-dynamic';
 
-// Importeer de Supabase-client uit je bestaande lib/supabase.js
-import { supabase } from '@/lib/supabase';
+// Importeer geen supabase-client hier, we laden deze later in useEffect
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -44,21 +43,45 @@ function InviteContent() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [supabase, setSupabase] = useState(null);
 
   // Router en searchParams voor navigatie en URL-parameters
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get('code');
 
-  // Controleer de uitnodigingscode als de component wordt geladen
+  // Initialiseer de Supabase-client in useEffect
   useEffect(() => {
-    async function checkCode() {
-      if (!code) {
-        setMode('invalid');
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.');
         return;
       }
 
-      // Haal de uitnodiging op uit de database
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      });
+      setSupabase(client);
+    }
+
+    initSupabase();
+  }, []);
+
+  // Controleer de uitnodigingscode als de Supabase-client beschikbaar is
+  useEffect(() => {
+    async function checkCode() {
+      if (!supabase || !code) {
+        if (!code) setMode('invalid');
+        return;
+      }
+
       const { data } = await supabase
         .from('invites')
         .select('*')
@@ -78,10 +101,15 @@ function InviteContent() {
     }
 
     checkCode();
-  }, [code]);
+  }, [supabase, code]);
 
   // Functie om een nieuw account aan te maken
   async function handleSignup() {
+    if (!supabase) {
+      setError('Supabase-client is niet geïnitialiseerd.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -111,10 +139,10 @@ function InviteContent() {
   }
 
   // Toon de juiste inhoud op basis van de modus
-  if (mode === 'loading') {
+  if (mode === 'loading' || !supabase) {
     return (
       <div style={boxStyle}>
-        <p style={{ color: 'rgba(255,255,255,0.3)' }}>Checking invite...</p>
+        <p style={{ color: 'rgba(255,255,255,0.3)' }}>Laden...</p>
       </div>
     );
   }
