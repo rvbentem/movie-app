@@ -1,82 +1,69 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
+
+// Initialiseer Supabase-client buiten de component om herhaalde initialisatie te voorkomen
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 export default function MovieCard({ movie, onUpdate }) {
   const [hover, setHover] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [supabase, setSupabase] = useState(null)
-
-  useEffect(() => {
-    async function initSupabase() {
-      const { createClient } = await import('@supabase/supabase-js')
-      const client = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      )
-      setSupabase(client)
-    }
-    initSupabase()
-  }, [])
 
   async function toggleWatched(e) {
     e.preventDefault()
     e.stopPropagation()
-    if (!supabase) return
-
     setLoading(true)
+
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { setLoading(false); return }
+    if (!session) {
+      setLoading(false)
+      return
+    }
 
     const userId = session.user.id
 
-    if (movie.watched) {
-      await supabase
-        .from('watched_movies')
-        .delete()
-        .eq('user_id', userId)
-        .eq('movie_id', movie.id)
-    } else {
-      await supabase
-        .from('watched_movies')
-        .insert({ user_id: userId, movie_id: movie.id })
+    try {
+      if (movie.watched) {
+        await supabase
+          .from('watched_movies')
+          .delete()
+          .eq('user_id', userId)
+          .eq('movie_id', movie.id)
+      } else {
+        await supabase
+          .from('watched_movies')
+          .insert({ user_id: userId, movie_id: movie.id })
+      }
+      onUpdate()
+    } catch (error) {
+      console.error('Error updating watched status:', error)
+    } finally {
+      setLoading(false)
     }
-
-    onUpdate()
-    setLoading(false)
   }
 
   function getRtColor(score) {
     if (!score) return 'rgba(255,255,255,0.4)'
     const num = parseInt(score)
-    if (num >= 75) return '#fa320a'
-    if (num >= 60) return '#fab30a'
-    return '#8b8b8b'
+    if (num >= 75) return '#16a34a' // Groene kleur voor hoge scores
+    if (num >= 60) return '#fab30a' // Gele kleur voor gemiddelde scores
+    return '#8b8b8b' // Grijze kleur voor lage scores
   }
 
   function getRtEmoji(score) {
     if (!score) return '🍅'
     const num = parseInt(score)
-    if (num >= 75) return '🍅'
-    if (num >= 60) return '🍅'
-    return '🍅'
-  }
-
-  if (!supabase) {
-    return (
-      <div style={{
-        borderRadius: '10px', overflow: 'hidden',
-        aspectRatio: '2/3', background: '#1a1a1a',
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'center', color: 'rgba(255,255,255,0.3)'
-      }}>
-        Loading...
-      </div>
-    )
+    if (num >= 75) return '🍅' // Volle tomat
+    if (num >= 60) return '🍅' // Halve tomat (optioneel: vervang door 🥗 als je variatie wilt)
+    return '💩' // Slechte score
   }
 
   return (
-    
+    <a
       href={`https://www.imdb.com/title/${movie.imdb_id}`}
       target="_blank"
       rel="noopener noreferrer"
@@ -203,12 +190,12 @@ export default function MovieCard({ movie, onUpdate }) {
                 display: 'flex', alignItems: 'center', gap: '5px',
                 marginBottom: '10px'
               }}>
-                <span style={{ fontSize: '12px' }}>🍅</span>
+                <span style={{ fontSize: '12px' }}>{getRtEmoji(movie.rt_score)}</span>
                 <span style={{
                   fontSize: '12px', fontWeight: '700',
                   color: getRtColor(movie.rt_score)
                 }}>
-                  {movie.rt_score}
+                  {movie.rt_score}%
                 </span>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>
                   Rotten Tomatoes
