@@ -1,22 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
 
 export default function MovieCard({ movie, onUpdate }) {
   const [hover, setHover] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [supabase, setSupabase] = useState(null)
+
+  // Initialiseer Supabase-client alleen aan de client-side
+  useEffect(() => {
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+    setSupabase(client)
+  }, [])
 
   async function toggleWatched(e) {
     e.preventDefault()
     e.stopPropagation()
-    setLoading(true)
+    if (!supabase) return
 
+    setLoading(true)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       setLoading(false)
@@ -65,6 +71,24 @@ export default function MovieCard({ movie, onUpdate }) {
     e.preventDefault()
     e.stopPropagation()
     window.open(`https://www.imdb.com/title/${movie.imdb_id}`, '_blank', 'noopener,noreferrer')
+  }
+
+  // Toon een placeholder als Supabase nog niet is geïnitialiseerd
+  if (!supabase) {
+    return (
+      <div style={{
+        borderRadius: '10px',
+        overflow: 'hidden',
+        aspectRatio: '2/3',
+        background: '#1a1a1a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'rgba(255,255,255,0.3)'
+      }}>
+        Loading...
+      </div>
+    )
   }
 
   return (
@@ -228,8 +252,8 @@ export default function MovieCard({ movie, onUpdate }) {
               onClick={openIMDb}
               style={{
                 flex: 1,
-                background: 'rgba(255, 193, 7, 0.2)', // IMDb-geel met transparantie
-                color: '#FFC107', // IMDb-geel
+                background: 'rgba(255, 193, 7, 0.2)',
+                color: '#FFC107',
                 border: '1px solid rgba(255, 193, 7, 0.4)',
                 borderRadius: '6px',
                 padding: '8px 12px',
