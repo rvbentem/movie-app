@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
 import Navbar from '../components/Navbar'
 import AuthGuard from '../components/AuthGuard'
 
@@ -32,9 +31,38 @@ function StatCard({ label, value, sub }) {
 export default function StatsPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [supabase, setSupabase] = useState(null)
 
+  // Initialiseer Supabase in de browser
   useEffect(() => {
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
+      setSupabase(client)
+    }
+
+    initSupabase()
+  }, [])
+
+  // Laad statistieken als Supabase beschikbaar is
+  useEffect(() => {
+    if (!supabase) return
+
     async function load() {
+      setLoading(true)
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -108,8 +136,25 @@ export default function StatsPage() {
 
       setLoading(false)
     }
+
     load()
-  }, [])
+  }, [supabase])
+
+  // Toon een laadscherm als Supabase nog niet beschikbaar is
+  if (!supabase) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#0f0f0f',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'rgba(255,255,255,0.3)'
+      }}>
+        Laden...
+      </div>
+    )
+  }
 
   return (
     <AuthGuard>
@@ -137,22 +182,22 @@ export default function StatsPage() {
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
                 <StatCard
                   label="Movies watched"
-                  value={stats.watchedCount}
-                  sub={`${stats.pct}% of the Top 250`}
+                  value={stats?.watchedCount}
+                  sub={`${stats?.pct}% of the Top 250`}
                 />
                 <StatCard
                   label="Still to watch"
-                  value={stats.unwatchedCount}
+                  value={stats?.unwatchedCount}
                   sub="movies remaining"
                 />
                 <StatCard
                   label="Time spent watching"
-                  value={`${stats.hours}h`}
-                  sub={`${stats.minutes} minutes`}
+                  value={`${stats?.hours}h`}
+                  sub={`${stats?.minutes} minutes`}
                 />
                 <StatCard
                   label="Average IMDb rank"
-                  value={stats.avgRank ? `#${stats.avgRank}` : '—'}
+                  value={stats?.avgRank ? `#${stats.avgRank}` : '—'}
                   sub="of watched movies"
                 />
               </div>
@@ -160,67 +205,69 @@ export default function StatsPage() {
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '40px' }}>
                 <StatCard
                   label="Favorite genre"
-                  value={stats.favoriteGenre ? stats.favoriteGenre[0] : '—'}
-                  sub={stats.favoriteGenre ? `${stats.favoriteGenre[1]} movies watched` : ''}
+                  value={stats?.favoriteGenre ? stats.favoriteGenre[0] : '—'}
+                  sub={stats?.favoriteGenre ? `${stats.favoriteGenre[1]} movies watched` : ''}
                 />
                 <StatCard
                   label="Oldest watched"
-                  value={stats.oldest ? stats.oldest.year : '—'}
-                  sub={stats.oldest ? stats.oldest.title : ''}
+                  value={stats?.oldest ? stats.oldest.year : '—'}
+                  sub={stats?.oldest ? stats.oldest.title : ''}
                 />
                 <StatCard
                   label="Newest watched"
-                  value={stats.newest ? stats.newest.year : '—'}
-                  sub={stats.newest ? stats.newest.title : ''}
+                  value={stats?.newest ? stats.newest.year : '—'}
+                  sub={stats?.newest ? stats.newest.title : ''}
                 />
                 <StatCard
                   label="Best month"
-                  value={stats.bestMonth ? `${stats.bestMonth[1]}` : '—'}
-                  sub={stats.bestMonth ? `movies in ${stats.bestMonth[0]}` : 'No data yet'}
+                  value={stats?.bestMonth ? `${stats.bestMonth[1]}` : '—'}
+                  sub={stats?.bestMonth ? `movies in ${stats.bestMonth[0]}` : 'No data yet'}
                 />
               </div>
 
               {/* Genre breakdown */}
-              <div style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '12px',
-                padding: '28px'
-              }}>
-                <h2 style={{
-                  fontFamily: "'DM Serif Display', serif",
-                  fontSize: '20px', fontWeight: '400',
-                  marginBottom: '24px'
+              {stats?.genreBreakdown && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '12px',
+                  padding: '28px'
                 }}>
-                  Still to watch by genre
-                </h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {stats.genreBreakdown.map(([genre, count]) => {
-                    const pct = Math.round((count / stats.unwatchedCount) * 100)
-                    return (
-                      <div key={genre}>
-                        <div style={{
-                          display: 'flex', justifyContent: 'space-between',
-                          marginBottom: '5px', fontSize: '13px'
-                        }}>
-                          <span>{genre}</span>
-                          <span style={{ color: 'rgba(255,255,255,0.4)' }}>{count} movies</span>
-                        </div>
-                        <div style={{
-                          height: '4px', background: 'rgba(255,255,255,0.08)',
-                          borderRadius: '4px', overflow: 'hidden'
-                        }}>
+                  <h2 style={{
+                    fontFamily: "'DM Serif Display', serif",
+                    fontSize: '20px', fontWeight: '400',
+                    marginBottom: '24px'
+                  }}>
+                    Still to watch by genre
+                  </h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {stats.genreBreakdown.map(([genre, count]) => {
+                      const pct = Math.round((count / (stats.unwatchedCount || 1)) * 100)
+                      return (
+                        <div key={genre}>
                           <div style={{
-                            height: '100%', width: `${pct}%`,
-                            background: 'linear-gradient(to right, #3b82f6, #6366f1)',
-                            borderRadius: '4px'
-                          }} />
+                            display: 'flex', justifyContent: 'space-between',
+                            marginBottom: '5px', fontSize: '13px'
+                          }}>
+                            <span>{genre}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.4)' }}>{count} movies</span>
+                          </div>
+                          <div style={{
+                            height: '4px', background: 'rgba(255,255,255,0.08)',
+                            borderRadius: '4px', overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              height: '100%', width: `${pct}%`,
+                              background: 'linear-gradient(to right, #3b82f6, #6366f1)',
+                              borderRadius: '4px'
+                            }} />
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </div>

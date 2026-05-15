@@ -1,6 +1,6 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
 import Navbar from '../components/Navbar'
 import AuthGuard from '../components/AuthGuard'
 
@@ -8,9 +8,38 @@ export default function PickPage() {
   const [allMovies, setAllMovies] = useState([])
   const [picks, setPicks] = useState([])
   const [loading, setLoading] = useState(false)
+  const [supabase, setSupabase] = useState(null)
 
+  // Initialiseer Supabase in de browser
   useEffect(() => {
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
+      setSupabase(client)
+    }
+
+    initSupabase()
+  }, [])
+
+  // Laad films als Supabase beschikbaar is
+  useEffect(() => {
+    if (!supabase) return
+
     async function loadMovies() {
+      setLoading(true)
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -27,9 +56,11 @@ export default function PickPage() {
       const watchedIds = new Set(watchedMovies?.map(w => w.movie_id) || [])
       const unwatched = allMovies.filter(m => !watchedIds.has(m.id))
       setAllMovies(unwatched)
+      setLoading(false)
     }
+
     loadMovies()
-  }, [])
+  }, [supabase])
 
   function pickMovies() {
     setLoading(true)
@@ -87,6 +118,22 @@ export default function PickPage() {
 
     setPicks(picked)
     setLoading(false)
+  }
+
+  // Toon een laadscherm als Supabase nog niet beschikbaar is
+  if (!supabase) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#0f0f0f',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'rgba(255,255,255,0.3)'
+      }}>
+        Laden...
+      </div>
+    )
   }
 
   return (
