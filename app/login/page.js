@@ -1,8 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -11,29 +10,76 @@ export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [supabase, setSupabase] = useState(null)
   const router = useRouter()
 
+  // Initialiseer Supabase in de browser
+  useEffect(() => {
+    async function initSupabase() {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase URL of Anon Key is niet beschikbaar.')
+        return
+      }
+
+      const client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        }
+      })
+      setSupabase(client)
+    }
+
+    initSupabase()
+  }, [])
+
   async function handleSubmit() {
+    if (!supabase) {
+      setError('Supabase is niet geïnitialiseerd.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
-    if (isSignup) {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        setError(error.message)
+    try {
+      if (isSignup) {
+        const { error } = await supabase.auth.signUp({ email, password })
+        if (error) {
+          setError(error.message)
+        } else {
+          router.push('/')
+        }
       } else {
-        router.push('/')
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) {
+          setError(error.message)
+        } else {
+          router.push('/')
+        }
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        setError(error.message)
-      } else {
-        router.push('/')
-      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    setLoading(false)
+  // Toon een laadscherm als Supabase nog niet beschikbaar is
+  if (!supabase) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#0f0f0f',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'rgba(255,255,255,0.3)', fontSize: '14px'
+      }}>
+        Laden...
+      </div>
+    )
   }
 
   return (
