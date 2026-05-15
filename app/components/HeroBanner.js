@@ -92,21 +92,7 @@ export default function HeroBanner({ movies }) {
           </div>
 
           
-            href={`https://www.imdb.com/title/${hero.imdb_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-block',
-              background: '#f5c518',
-              color: '#000',
-              padding: '10px 24px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '700',
-              textDecoration: 'none',
-              fontFamily: "'DM Sans', sans-serif"
-            }}
-          >
+          <a href={`https://www.imdb.com/title/${hero.imdb_id}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: '#f5c518', color: '#000', padding: '10px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: '700', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif" }}>
             View on IMDb
           </a>
         </div>
