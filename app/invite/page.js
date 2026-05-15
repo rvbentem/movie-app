@@ -1,8 +1,8 @@
 'use client'
+
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function InvitePage() {
@@ -11,7 +11,6 @@ export default function InvitePage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [inviteCode, setInviteCode] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
@@ -19,6 +18,12 @@ export default function InvitePage() {
   useEffect(() => {
     async function checkCode() {
       if (!code) { setMode('invalid'); return }
+
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      )
 
       const { data } = await supabase
         .from('invites')
@@ -38,6 +43,12 @@ export default function InvitePage() {
     setLoading(true)
     setError('')
 
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+
     const { data, error: signupError } = await supabase.auth.signUp({ email, password })
 
     if (signupError) {
@@ -46,7 +57,6 @@ export default function InvitePage() {
       return
     }
 
-    // Mark invite as used
     await supabase
       .from('invites')
       .update({ used_by: data.user.id, used_at: new Date().toISOString() })
@@ -66,6 +76,14 @@ export default function InvitePage() {
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: '12px', padding: '48px',
     width: '100%', maxWidth: '400px'
+  }
+
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#fff', padding: '12px 16px',
+    borderRadius: '8px', fontSize: '14px',
+    fontFamily: "'DM Sans', sans-serif", outline: 'none'
   }
 
   if (mode === 'loading') return (
@@ -119,26 +137,14 @@ export default function InvitePage() {
             placeholder="Email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#fff', padding: '12px 16px',
-              borderRadius: '8px', fontSize: '14px',
-              fontFamily: "'DM Sans', sans-serif", outline: 'none'
-            }}
+            style={inputStyle}
           />
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#fff', padding: '12px 16px',
-              borderRadius: '8px', fontSize: '14px',
-              fontFamily: "'DM Sans', sans-serif", outline: 'none'
-            }}
+            style={inputStyle}
           />
 
           {error && <p style={{ color: '#f87171', fontSize: '13px' }}>{error}</p>}

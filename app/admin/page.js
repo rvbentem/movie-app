@@ -1,8 +1,8 @@
 'use client'
+
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
 import Navbar from '../components/Navbar'
 import AuthGuard from '../components/AuthGuard'
 
@@ -17,6 +17,12 @@ export default function AdminPage() {
 
   async function generateInvite() {
     setGenerating(true)
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+
     const { data: { session } } = await supabase.auth.getSession()
     const code = randomCode()
 
