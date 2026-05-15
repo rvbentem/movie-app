@@ -79,10 +79,8 @@ export default function HomePage() {
         <Navbar />
         <div className="page-container" style={{ padding: '88px 48px 64px' }}>
 
-          {/* Hero Banner */}
           {!loading && <HeroBanner movies={movies} />}
 
-          {/* Header */}
           <div style={{ marginBottom: '16px' }}>
             <h1 style={{
               fontFamily: "'DM Serif Display', serif",
@@ -95,10 +93,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Progress bar */}
           <ProgressBar watched={watchedCount} total={movies.length} />
 
-          {/* Filters */}
           <div className="filters-row" style={{
             display: 'flex', gap: '12px',
             marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center'
@@ -148,4 +144,13 @@ export default function HomePage() {
               gap: '12px'
             }}>
               {filtered.map(movie => (
-                <MovieCard key={movie.id} movie=
+                <MovieCard key={movie.id} movie={movie} onUpdate={loadMovies} />
+              ))}
+            </div>
+          )}
+
+        </div>
+      </div>
+    </AuthGuard>
+  )
+}
