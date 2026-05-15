@@ -155,12 +155,12 @@ export default function HomePage() {
             </select>
 
             <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={inputStyle}>
-              <option value="rank" style={{ background: '#1a1a1a' }}>Sort: IMDb Rank</option>
-              <option value="year_new" style={{ background: '#1a1a1a' }}>Sort: Newest first</option>
-              <option value="year_old" style={{ background: '#1a1a1a' }}>Sort: Oldest first</option>
-              <option value="runtime_short" style={{ background: '#1a1a1a' }}>Sort: Shortest first</option>
-              <option value="runtime_long" style={{ background: '#1a1a1a' }}>Sort: Longest first</option>
-              <option value="genre" style={{ background: '#1a1a1a' }}>Sort: Genre</option>
+              <option value="rank" style={{ background: '#1a1a1a' }}>IMDb Rank</option>
+              <option value="year_new" style={{ background: '#1a1a1a' }}>Newest first</option>
+              <option value="year_old" style={{ background: '#1a1a1a' }}>Oldest first</option>
+              <option value="runtime_short" style={{ background: '#1a1a1a' }}>Shortest first</option>
+              <option value="runtime_long" style={{ background: '#1a1a1a' }}>Longest first</option>
+              <option value="genre" style={{ background: '#1a1a1a' }}>Genre</option>
             </select>
 
             <button
