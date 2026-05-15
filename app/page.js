@@ -75,6 +75,8 @@ export default function HomePage() {
   function sortMovies(list) {
     switch (sortBy) {
       case 'rank': return [...list].sort((a, b) => a.imdb_rank - b.imdb_rank)
+      case 'rt_desc': return [...list].sort((a, b) => (parseInt(b.rt_score) || 0) - (parseInt(a.rt_score) || 0))
+      case 'rt_asc': return [...list].sort((a, b) => (parseInt(a.rt_score) || 101) - (parseInt(b.rt_score) || 101))
       case 'year_new': return [...list].sort((a, b) => b.year - a.year)
       case 'year_old': return [...list].sort((a, b) => a.year - b.year)
       case 'runtime_short': return [...list].sort((a, b) => (a.runtime || 999) - (b.runtime || 999))
@@ -156,6 +158,8 @@ export default function HomePage() {
 
             <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={inputStyle}>
               <option value="rank" style={{ background: '#1a1a1a' }}>IMDb Rank</option>
+              <option value="rt_desc" style={{ background: '#1a1a1a' }}>RT Score: High to Low</option>
+              <option value="rt_asc" style={{ background: '#1a1a1a' }}>RT Score: Low to High</option>
               <option value="year_new" style={{ background: '#1a1a1a' }}>Newest first</option>
               <option value="year_old" style={{ background: '#1a1a1a' }}>Oldest first</option>
               <option value="runtime_short" style={{ background: '#1a1a1a' }}>Shortest first</option>
